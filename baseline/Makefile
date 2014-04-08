@@ -2,7 +2,7 @@
 CC=g++
 CFLAGS=-c -Wall -g
 LDFLAGS=
-SOURCES=driver.cpp matrix_mul.cpp
+SOURCES=driver.cpp matrix_mul.cpp ../lib/generators/generator.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=driver.out
 
