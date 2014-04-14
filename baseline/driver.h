@@ -10,10 +10,8 @@
 #include <stdlib.h>
 
 #include "matrix_mul.h"
+#include "../lib/config/config.h"
 #include "../lib/generators/generator.h"
 #include "../lib/util/util.h"
-
-#define M 8
-#define N 8
 
 #endif
