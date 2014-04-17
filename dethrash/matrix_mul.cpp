@@ -23,9 +23,6 @@ void matrix_mul(float *A, float *B, float *C, unsigned int size) {
   // Load inputs A and B into the interleaved data format.
   int baseA = A_OFFSET;
   int baseB = B_OFFSET;
-  cout << "float/blk = " << FLT_PER_BLOCK << endl;
-  cout << "baseA = " << baseA << endl;
-  cout << "baseB = " << baseB << endl;
   for (int i = 0; i < length; i++) {
     if (i > 0 && i % FLT_PER_BLOCK == 0) {
       baseA += NUM_OPERANDS;
@@ -34,14 +31,6 @@ void matrix_mul(float *A, float *B, float *C, unsigned int size) {
     interleaved[baseA * FLT_PER_BLOCK + i % FLT_PER_BLOCK] = A[i];
     interleaved[baseB * FLT_PER_BLOCK + i % FLT_PER_BLOCK] = B[i];
   }
-
-  cout << "interleaved mem: ";
-  for (int i = 0; i < 64; i++) {
-    if (i % 8 == 0)
-      cout << endl;
-    cout << interleaved[i] << "\t";
-  }
-  cout << endl << endl;
 
   //
   // Do operation on interleaved memory.
@@ -53,15 +42,12 @@ void matrix_mul(float *A, float *B, float *C, unsigned int size) {
       for(unsigned int k = 0; k < size; k++) {
         int a_index = i * size + k;
         int b_index = k * size + j;
-        int a_inverse = inverse_index(a_index, A_OFFSET);
-        int b_inverse = inverse_index(b_index, B_OFFSET);
-        float Aik = A[a_inverse];
-        float Bkj = B[b_inverse];
-        // cout << "idx -> inv = " << a_index << " -> " << a_inverse << endl;
+        float Aik = interleaved[inverse_index(a_index, A_OFFSET)];
+        float Bkj = interleaved[inverse_index(b_index, B_OFFSET)];
         sum += Aik * Bkj;
       }
-      int c_index = i * size + j;;
-      interleaved[inverse_index(c_index,C_OFFSET)] = sum;
+      int c_index = i * size + j;
+      interleaved[inverse_index(c_index, C_OFFSET)] = sum;
     }
   }
 

@@ -16,9 +16,10 @@ typedef enum {
   CORRECT
 } run_mode_t;
 
+
 // Matrix dimensions.
-#define M 4
-#define N 4
+#define M 8
+#define N 8
 
 
 // Config class members.
