@@ -10,6 +10,11 @@ using std::endl;
 using std::string;
 
 Config::Config(int argc, char const *argv[]) {
+  // See if we have enough arguments
+  if (argc < 3) {
+    print_usage();
+  }
+
   // Determine the run mode.
   mode = NONE;
   for (int i = 0; i < argc; i++) {
