@@ -1,6 +1,6 @@
 # macros
 CC=g++
-CFLAGS=-c -Wall -g
+CFLAGS=-O2 -c -Wall -g
 LDFLAGS=
 
 
