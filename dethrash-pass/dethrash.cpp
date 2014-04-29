@@ -15,7 +15,7 @@ namespace llvm {
 //
 
 bool DethrashPass::runOnFunction(Function& fn) {
-  cout << "Function: " << fn.getName().data() << endl << endl;
+  cout << "Function: " << fn.getName().data() << endl;
 
   // Does not modify the incoming Function.
   return false;
