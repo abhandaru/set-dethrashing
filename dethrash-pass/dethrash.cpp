@@ -14,7 +14,20 @@ namespace llvm {
 // Called by the FunctionPass API in LLVM.
 //
 
-bool DethrashPass::runOnFunction(Function& fn) {
+void DethrashPass::getAnalysisUsage(AnalysisUsage& au) const {
+  au.setPreservesCFG();
+}
+
+
+bool DethrashPass::runOnModule(Module& mod) {
+  for (Module::iterator MI = mod.begin(), ME = mod.end(); MI != ME; ++MI) {
+    eachFunction(*MI);
+  }
+  return false;
+}
+
+
+bool DethrashPass::eachFunction(Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
 
   // data_transfer_func =
@@ -44,11 +57,6 @@ bool DethrashPass::runOnFunction(Function& fn) {
   // Does not modify the incoming Function.
   return false;
 }
-
-void DethrashPass::getAnalysisUsage(AnalysisUsage& au) const {
-  au.setPreservesCFG();
-}
-
 
 //
 // LLVM uses the address of this static member to identify the pass, so the

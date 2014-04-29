@@ -11,26 +11,31 @@
 #include <set>
 #include <vector>
 
-#include "llvm/IR/Instructions.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/ValueMap.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Pass.h"
 
 namespace llvm {
 
-class DethrashPass : public FunctionPass {
+class DethrashPass : public ModulePass {
  public:
   static char ID;
-  DethrashPass() : FunctionPass(ID) { };
+  DethrashPass() : ModulePass(ID) { };
 
   // pass API
-  virtual bool runOnFunction(Function& fn);
+  virtual bool runOnModule(Module& mod);
   virtual void getAnalysisUsage(AnalysisUsage& au) const;
+
+ private:
+  bool eachFunction(Function& fn);
 };
 
 }
