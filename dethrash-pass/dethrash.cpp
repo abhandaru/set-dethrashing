@@ -17,7 +17,7 @@ namespace llvm {
 bool DethrashPass::runOnFunction(Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
 
-  // data_transfer_func = 
+  // data_transfer_func =
   ValueMap<Value*, Value*> map;
 
   // Count how many matrices are there in the arguments.
@@ -33,8 +33,8 @@ bool DethrashPass::runOnFunction(Function& fn) {
   // Go through all instructions and add instructions before %arrayidx# instructions.
   for(Function::iterator bb_itr = fn.begin(); bb_itr != fn.end(); ++bb_itr) {
   	for(BasicBlock::iterator inst_itr = bb_itr->begin(); inst_itr != bb_itr->end(); ++inst_itr) {
-  		if(inst_itr->getName()->data()) {
-  			BinaryOperator* new_inst = BinaryOperator::Create(Instruction::Add);
+  		if(inst_itr->getName().data()) {
+  			// BinaryOperator* new_inst = BinaryOperator::Create(Instruction::Add);
 
   		}
   	}
