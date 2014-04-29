@@ -15,7 +15,7 @@ namespace llvm {
 //
 
 bool DethrashPass::runOnFunction(Function& fn) {
-  cout << "Function: " << fn.getName().data() << endl << endl;
+  cout << "Function: " << fn.getName().data() << endl;
 
   // data_transfer_func = 
   ValueMap<Value*, Value*> map;
