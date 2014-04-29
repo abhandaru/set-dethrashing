@@ -35,15 +35,23 @@ bool DethrashPass::runOnModule(Module& mod) {
 bool DethrashPass::eachFunction(Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
 
-  // Count how many matrices are there in the arguments.
-  int count = 0;
+  // Compute the set of matrices.
+  _matrices.clear();
   iplist<Argument>& arguments = fn.getArgumentList();
   for (iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
     if (isMatrix(*it)) {
-      Argument& arg = *it;
-      transform(arg, count);
-      count++;
+      Value* arg = &*it;
+      _matrices.insert(pair<Value*, int>(arg, _matrices.size()));
     }
+  }
+  _operands = _matrices.size();
+
+  // Iterate through the set.
+  for (ValueMap<Value*, int>::iterator it = _matrices.begin(),
+      ite = _matrices.end(); it != ite; ++it) {
+    Value* matrix = it->first;
+    int offset = it->second;
+    transform(matrix);
   }
 
   // Does not modify the incoming Function.
@@ -51,22 +59,50 @@ bool DethrashPass::eachFunction(Function& fn) {
 }
 
 
-void DethrashPass::transform(Argument& arg, int index) {
-  for(Argument::use_iterator user_itr = arg.use_begin(); user_itr != arg.use_end(); ++user_itr) {
-    if(GetElementPtrInst *inst = dyn_cast<GetElementPtrInst>(*user_itr)) {
-      // cout << "find a load inst" << endl;
-      inst->getPointerOperand()->dump();
-      for(GetElementPtrInst::op_iterator op_itr = inst->idx_begin(); op_itr != inst->idx_end(); ++op_itr)
-        op_itr->get()->dump();
-      cout << endl;
+void DethrashPass::transform(Value* matrix) {
+  for(Argument::use_iterator it = matrix->use_begin(); it != matrix->use_end(); ++it) {
+    if(GetElementPtrInst *inst = dyn_cast<GetElementPtrInst>(*it)) {
+      transformPointer(inst);
     }
   }
+}
+
+
+void DethrashPass::transformPointer(GetElementPtrInst* inst) {
+  LLVMContext& context = inst->getParent()->getContext();
+
+  Use* add = inst->idx_begin();
+  Value* matrix = inst->getPointerOperand();
+  Value* index = add->get();
+  int offset = _matrices[matrix];
+
+  cout << "Reference to matrix: " << endl;
+  matrix->dump();
+  index->dump();
+
+  uint64_t float_shift = log2(FLT_PER_BLOCK);
+  uint64_t float_mask = ~FLT_PER_BLOCK + 1;
+
+  // Examples of instructions created.
+  // ConstantInt* amount = ConstantInt::get(Type::getInt32Ty(context), 3);
+  // Instruction* shift = BinaryOperator::Create(Instruction::Shl, index, amount);
+
+  cout << endl;
 }
 
 
 bool DethrashPass::isMatrix(const Argument& arg) {
   Type* type = arg.getType();
   return type->isPointerTy() && type->getContainedType(0)->isFloatTy();
+}
+
+
+int DethrashPass::log2(int x) {
+  int i = 0;
+  while (x >>= 1) {
+    i++;
+  }
+  return i;
 }
 
 
