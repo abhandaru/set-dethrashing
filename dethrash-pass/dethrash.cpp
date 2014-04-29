@@ -20,6 +20,7 @@ void DethrashPass::getAnalysisUsage(AnalysisUsage& au) const {
 }
 
 
+
 bool DethrashPass::runOnModule(Module& mod) {
   for (Module::iterator MI = mod.begin(), ME = mod.end(); MI != ME; ++MI) {
     eachFunction(*MI);
@@ -31,22 +32,35 @@ bool DethrashPass::runOnModule(Module& mod) {
 //
 // Helper functions.
 //
-
 bool DethrashPass::eachFunction(Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
 
   // Count how many matrices are there in the arguments.
-  ValueMap<Argument*, int> matrices;
+  int count = 0;
   iplist<Argument>& arguments = fn.getArgumentList();
   for (iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
     if (isMatrix(*it)) {
-      matrices.insert(pair<Argument*, int>(&*it, matrices.size()));
+      Argument& arg = *it;
+      transform(arg, count);
+      count++;
     }
   }
 
-
   // Does not modify the incoming Function.
   return false;
+}
+
+
+void DethrashPass::transform(Argument& arg, int index) {
+  for(Argument::use_iterator user_itr = arg.use_begin(); user_itr != arg.use_end(); ++user_itr) {
+    if(GetElementPtrInst *inst = dyn_cast<GetElementPtrInst>(*user_itr)) {
+      // cout << "find a load inst" << endl;
+      inst->getPointerOperand()->dump();
+      for(GetElementPtrInst::op_iterator op_itr = inst->idx_begin(); op_itr != inst->idx_end(); ++op_itr)
+        op_itr->get()->dump();
+      cout << endl;
+    }
+  }
 }
 
 
