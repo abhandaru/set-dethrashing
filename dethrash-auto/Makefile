@@ -4,13 +4,14 @@ CFLAGS=-O2 -c -Wall -g
 LDFLAGS=
 
 # llvm macros
-PASS=../dethrash-pass/dethrash.so -dethrash
+PASS=../dethrash-pass/dethrash.so
+PASS_NAME=-dethrash
 LL=clang
 LLFLAGS=-O2 -emit-llvm
 LLC=llc
 LLCFLAGS=-filetype=obj
 OPT=opt
-OPTFLAGS=-load $(PASS)
+OPTFLAGS=-load $(PASS) $(PASS_NAME)
 
 # grouped sources
 GPP_SOURCES= \
@@ -45,11 +46,11 @@ $(LLC_OBJECTS): %.o: %.out.bc
 	$(LLC) $(LLCFLAGS) $< -o $@
 	@llvm-dis $< -o $(subst ../baseline/,./,$(@:.o=.ll))
 
-$(OPT_OBJECTS): %.out.bc: %.bc
+$(OPT_OBJECTS): %.out.bc: %.bc $(PASS)
 	$(OPT) $(OPTFLAGS) $< -o $@
 
 $(LL_OBJECTS): %.bc: %.cpp
-	$(LL) -c $(LLFLAGS) $(IMPL_DIR)$< -o $@
+	$(LL) -c $(LLFLAGS) $< -o $@
 
 
 # clean

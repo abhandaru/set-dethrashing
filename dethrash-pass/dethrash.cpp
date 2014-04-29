@@ -7,6 +7,7 @@
 
 using std::cout;
 using std::endl;
+using std::pair;
 
 namespace llvm {
 
@@ -27,36 +28,33 @@ bool DethrashPass::runOnModule(Module& mod) {
 }
 
 
+//
+// Helper functions.
+//
+
 bool DethrashPass::eachFunction(Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
 
-  // data_transfer_func =
-  ValueMap<Value*, Value*> map;
-
   // Count how many matrices are there in the arguments.
+  ValueMap<Argument*, int> matrices;
   iplist<Argument>& arguments = fn.getArgumentList();
-  int matrices_count = 0;
-  for(iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
-  	// Count the number of float pointers.
-  	Type* arg_type = it->getType();
-  	if(arg_type->isPointerTy() && arg_type->getContainedType(0)->isFloatTy())
-  		matrices_count++;
-  }
-
-  // Go through all instructions and add instructions before %arrayidx# instructions.
-  for(Function::iterator bb_itr = fn.begin(); bb_itr != fn.end(); ++bb_itr) {
-  	for(BasicBlock::iterator inst_itr = bb_itr->begin(); inst_itr != bb_itr->end(); ++inst_itr) {
-  		if(inst_itr->getName().data()) {
-  			// BinaryOperator* new_inst = BinaryOperator::Create(Instruction::Add);
-
-  		}
-  	}
+  for (iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
+    if (isMatrix(*it)) {
+      matrices.insert(pair<Argument*, int>(&*it, matrices.size()));
+    }
   }
 
 
   // Does not modify the incoming Function.
   return false;
 }
+
+
+bool DethrashPass::isMatrix(const Argument& arg) {
+  Type* type = arg.getType();
+  return type->isPointerTy() && type->getContainedType(0)->isFloatTy();
+}
+
 
 //
 // LLVM uses the address of this static member to identify the pass, so the

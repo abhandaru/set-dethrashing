@@ -36,6 +36,7 @@ class DethrashPass : public ModulePass {
 
  private:
   bool eachFunction(Function& fn);
+  bool isMatrix(const Argument& arg);
 };
 
 }
