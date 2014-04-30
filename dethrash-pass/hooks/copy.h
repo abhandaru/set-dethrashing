@@ -6,6 +6,8 @@
 #ifndef __COPY_H__
 #define __COPY_H__
 
+#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 //
@@ -22,8 +24,8 @@
 //
 // Function prototypes.
 //
-float* hooks_copy_inputs(float* A, float* B, unsigned int size);
-void hooks_copy_output(float* unaligned, float* C);
+float* hooks_copy_inputs(float* A, float* B, int size);
+void hooks_copy_output(float* unaligned, float* C, int size);
 inline float* hooks_align(float* unaligned);
 
 #endif

@@ -9,6 +9,7 @@ using std::cout;
 using std::endl;
 using std::pair;
 using std::set;
+using std::string;
 
 namespace llvm {
 
@@ -21,22 +22,57 @@ void DethrashPass::getAnalysisUsage(AnalysisUsage& au) const {
 }
 
 
-
 bool DethrashPass::runOnModule(Module& mod) {
+  bool modified = false;
   for (Module::iterator MI = mod.begin(), ME = mod.end(); MI != ME; ++MI) {
-    eachFunction(*MI);
+    modified = modified || eachFunction(mod, *MI);
   }
-  return false;
+  return modified;
 }
 
 
 //
 // Helper functions.
 //
-bool DethrashPass::eachFunction(Function& fn) {
+bool DethrashPass::eachFunction(Module& mod, Function& fn) {
   cout << "Function: " << fn.getName().data() << endl;
+  if (!isMatrixMul(fn)) {
+    return false;
+  }
 
-  // Compute the set of matrices.
+  // Apply the transformation.
+  cout << " - Found matrix mul!" << endl;
+  getOperands(fn);
+  insertHooks(mod, fn);
+  transform();
+
+  // Modifies the incoming Function.
+  return true;
+}
+
+
+void DethrashPass::insertHooks(Module& mod, Function& fn) {
+  LLVMContext& context = mod.getContext();
+
+  Constant* align_const = mod.getOrInsertFunction("hooks_print",
+      Type::getVoidTy(context),
+      Type::getInt32Ty(context),
+      (Type*)NULL);
+
+  Function* align = cast<Function>(align_const);
+
+  BasicBlock& entry = fn.getEntryBlock();
+  Instruction* first = &*(entry.getFirstInsertionPt());
+
+  Value* val = ConstantInt::get(Type::getInt32Ty(context), 18);
+  ArrayRef<Value*> array(val);
+  Instruction *align_call = CallInst::Create(align, array);
+  align_call->insertBefore(first);
+}
+
+
+// Compute the set of matrices.
+void DethrashPass::getOperands(Function& fn) {
   _matrices.clear();
   iplist<Argument>& arguments = fn.getArgumentList();
   for (iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
@@ -46,20 +82,21 @@ bool DethrashPass::eachFunction(Function& fn) {
     }
   }
   _operands = _matrices.size();
+}
 
-  // Iterate through the set.
+
+// Iterate through the set.
+void DethrashPass::transform() {
   for (ValueMap<Value*, int>::iterator it = _matrices.begin(),
       ite = _matrices.end(); it != ite; ++it) {
     Value* matrix = it->first;
     int offset = it->second;
-    transform(matrix);
+    transformPointers(matrix);
   }
-
-  // Does not modify the incoming Function.
-  return false;
 }
 
-void DethrashPass::transform(Value* matrix) {
+
+void DethrashPass::transformPointers(Value* matrix) {
   // Gather instructions we need to replace.
   set<GetElementPtrInst*> iset;
   for(Argument::use_iterator it = matrix->use_begin(); it != matrix->use_end(); ++it) {
@@ -120,6 +157,14 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
   // Clean up old instruction.
   inst->replaceAllUsesWith(new_inst);
   inst->eraseFromParent();
+}
+
+
+// Ideally this information would be passed as metadata through clang.
+// We could do this through custom pragmas or other compiler hints.
+bool DethrashPass::isMatrixMul(Function& fn) {
+  string name = fn.getName().data();
+  return name.find("matrix_mul") != string::npos;
 }
 
 

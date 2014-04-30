@@ -11,11 +11,8 @@
 #include <set>
 #include <vector>
 
-#include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DepthFirstIterator.h"
-#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/ValueMap.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -23,7 +20,6 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Pass.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 // Quantities know when pass is compiled on system.
 #define L1_BLK_SIZE     64
@@ -41,15 +37,22 @@ class DethrashPass : public ModulePass {
   virtual void getAnalysisUsage(AnalysisUsage& au) const;
 
  private:
-  bool eachFunction(Function& fn);
-  void transform(Value* matrix);
+  bool eachFunction(Module& mod, Function& fn);
+  void getOperands(Function& fn);
+  void insertHooks(Module& mod, Function& fn);
+  void transform();
+  void transformPointers(Value* matrix);
   void transformPointer(GetElementPtrInst* inst);
+  bool isMatrixMul(Function& fn);
   bool isMatrix(const Argument& arg);
   int log2(int x);
 
   // data
   ValueMap<Value*, int> _matrices;
   int _operands;
+  Value* _unaligned;
+  Value* _aligned;
+  Value* _size;
 };
 
 }
