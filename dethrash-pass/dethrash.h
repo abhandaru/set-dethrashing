@@ -51,7 +51,9 @@ class DethrashPass : public ModulePass {
   // data
   ValueMap<Value*, int> _matrices;
   std::vector<Value*> _inputs;
+  Value* _output;
   Value* _size;
+  Value* _inter;
   int _operands;
 };
 

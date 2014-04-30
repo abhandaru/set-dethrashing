@@ -66,27 +66,45 @@ void DethrashPass::insertHooks(Module& mod, Function& fn) {
       Type::getFloatPtrTy(context),
       Type::getFloatPtrTy(context),
       (Type*)NULL);
+  Constant* output_const = mod.getOrInsertFunction("hooks_copy_output",
+      Type::getVoidTy(context),
+      Type::getFloatPtrTy(context),
+      Type::getFloatPtrTy(context),
+      Type::getInt32Ty(context),
+      (Type*)NULL);
 
   // Cast values to Function objects.
   Function* inputs = cast<Function>(inputs_const);
   Function* align = cast<Function>(align_const);
+  Function* output = cast<Function>(output_const);
 
-  // vector<Value*> inputs_args;
-  // inputs_args.push_back(_inputs[0]);
-  // inputs_args.push_back(_inputs[1]);
-  // inputs_args.push_back(_size);
-  // Instruction* inputs_call = CallInst::Create(inputs, inputs_args, Twine("unaligned"));
+  // Set up function calls.
+  vector<Value*> inputs_args;
+  inputs_args.push_back(_inputs[0]);
+  inputs_args.push_back(_inputs[1]);
+  inputs_args.push_back(_size);
+  Instruction* inputs_call = CallInst::Create(inputs, inputs_args, Twine("unaligned"));
 
-  // ArrayRef<Value*> align_args(inputs_call);
-  ArrayRef<Value*> align_args(_inputs[0]);
+  ArrayRef<Value*> align_args(inputs_call);
   Instruction* align_call = CallInst::Create(align, align_args, Twine("inter"));
+
+  vector<Value*> output_args;
+  output_args.push_back(inputs_call);
+  output_args.push_back(_output);
+  output_args.push_back(_size);
+  Instruction* output_call = CallInst::Create(output, output_args);
 
   // Insert in order.
   BasicBlock& entry = fn.getEntryBlock();
+  BasicBlock& ret = fn.back();
   Instruction* first = &*(entry.getFirstInsertionPt());
-  // inputs_call->insertBefore(first);
-  // align_call->insertAfter(inputs_call);
-  align_call->insertBefore(first);
+  Instruction* last = &(ret.back()); // return?
+  inputs_call->insertBefore(first);
+  align_call->insertAfter(inputs_call);
+  output_call->insertBefore(last);
+
+  // Save reference to the align call.
+  _inter = align_call;
 }
 
 
@@ -102,10 +120,12 @@ void DethrashPass::getOperands(Function& fn) {
       _matrices.insert(pair<Value*, int>(arg, offset));
       if (offset < NUM_OPERANDS - 1) {
         _inputs.push_back(arg);
+      } else {
+        _output = arg;
       }
     }
   }
-  _size = &*(arguments.end());
+  _size = &*(--(arguments.end()));
   _operands = _matrices.size();
 }
 
@@ -166,7 +186,7 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
 
   // Create new array reference.
   ArrayRef<Value*> arr_ref(new_index);
-  GetElementPtrInst* new_inst = GetElementPtrInst::Create(matrix, arr_ref);
+  GetElementPtrInst* new_inst = GetElementPtrInst::Create(_inter, arr_ref);
   new_inst->setIsInBounds(true);
   new_inst->setName(Twine("dethrash"));
 
