@@ -8,6 +8,7 @@
 using std::cout;
 using std::endl;
 using std::pair;
+using std::set;
 
 namespace llvm {
 
@@ -59,37 +60,41 @@ bool DethrashPass::eachFunction(Function& fn) {
 }
 
 void DethrashPass::transform(Value* matrix) {
+  // Gather instructions we need to replace.
+  set<GetElementPtrInst*> iset;
   for(Argument::use_iterator it = matrix->use_begin(); it != matrix->use_end(); ++it) {
     if(GetElementPtrInst *inst = dyn_cast<GetElementPtrInst>(*it)) {
-      transformPointer(inst);
+      iset.insert(inst);
     }
   }
-
-
+  // Apply transformations safely over set iterator.
+  for (set<GetElementPtrInst*>::iterator it = iset.begin(),
+      ite = iset.end(); it != ite; ++it) {
+    GetElementPtrInst* inst = *it;
+    transformPointer(inst);
+  }
 }
 
 
 void DethrashPass::transformPointer(GetElementPtrInst* inst) {
   LLVMContext& context = inst->getParent()->getContext();
 
-  Use* add = inst->idx_begin();
+  // Get relevant operands.
   Value* matrix = inst->getPointerOperand();
-  Value* index = add->get();
+  Value* index = inst->idx_begin()->get();
   int offset = _matrices[matrix];
 
-  cout << "Reference to matrix: " << endl;
-  matrix->dump();
-  index->dump();
-
-  // paremeters
+  // Get transform parameters.
   uint64_t float_shift = log2(FLT_PER_BLOCK);
   uint64_t float_mask = ~FLT_PER_BLOCK + 1;
 
+  // Set up constant values.
   Value* mask_val = ConstantInt::get(Type::getInt32Ty(context), float_mask);
   Value* shift_val = ConstantInt::get(Type::getInt32Ty(context), float_shift);
   Value* operands_val = ConstantInt::get(Type::getInt32Ty(context), _operands);
   Value* offset_val = ConstantInt::get(Type::getInt32Ty(context), offset);
 
+  // Create transformation math instructions.
   Instruction* temp1 = BinaryOperator::Create(Instruction::And, index, mask_val);
   Instruction* temp2 = BinaryOperator::Create(Instruction::LShr, index, shift_val);
   Instruction* temp3 = BinaryOperator::Create(Instruction::Mul, temp2, operands_val);
@@ -97,10 +102,13 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
   Instruction* temp5 = BinaryOperator::Create(Instruction::Shl, temp4, shift_val);
   Instruction* new_index = BinaryOperator::Create(Instruction::Add, temp1, temp5);
 
+  // Create new array reference.
   ArrayRef<Value*> arr_ref(new_index);
   GetElementPtrInst* new_inst = GetElementPtrInst::Create(matrix, arr_ref);
   new_inst->setIsInBounds(true);
+  new_inst->setName(Twine("dethrash"));
 
+  // Insert operations in the right order.
   temp1->insertBefore(inst);
   temp2->insertAfter(temp1);
   temp3->insertAfter(temp2);
@@ -109,6 +117,7 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
   new_index->insertAfter(temp5);
   new_inst->insertAfter(new_index);
 
+  // Clean up old instruction.
   inst->replaceAllUsesWith(new_inst);
   inst->eraseFromParent();
 }
@@ -127,6 +136,7 @@ int DethrashPass::log2(int x) {
   }
   return i;
 }
+
 
 //
 // LLVM uses the address of this static member to identify the pass, so the
