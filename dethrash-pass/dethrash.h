@@ -23,6 +23,7 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Pass.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 
 // Quantities know when pass is compiled on system.
 #define L1_BLK_SIZE     64

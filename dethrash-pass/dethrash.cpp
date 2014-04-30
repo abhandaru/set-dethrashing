@@ -58,13 +58,14 @@ bool DethrashPass::eachFunction(Function& fn) {
   return false;
 }
 
-
 void DethrashPass::transform(Value* matrix) {
   for(Argument::use_iterator it = matrix->use_begin(); it != matrix->use_end(); ++it) {
     if(GetElementPtrInst *inst = dyn_cast<GetElementPtrInst>(*it)) {
       transformPointer(inst);
     }
   }
+
+
 }
 
 
@@ -80,14 +81,36 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
   matrix->dump();
   index->dump();
 
+  // paremeters
   uint64_t float_shift = log2(FLT_PER_BLOCK);
   uint64_t float_mask = ~FLT_PER_BLOCK + 1;
 
-  // Examples of instructions created.
-  // ConstantInt* amount = ConstantInt::get(Type::getInt32Ty(context), 3);
-  // Instruction* shift = BinaryOperator::Create(Instruction::Shl, index, amount);
+  Value* mask_val = ConstantInt::get(Type::getInt32Ty(context), float_mask);
+  Value* shift_val = ConstantInt::get(Type::getInt32Ty(context), float_shift);
+  Value* operands_val = ConstantInt::get(Type::getInt32Ty(context), _operands);
+  Value* offset_val = ConstantInt::get(Type::getInt32Ty(context), offset);
 
-  cout << endl;
+  Instruction* temp1 = BinaryOperator::Create(Instruction::And, index, mask_val);
+  Instruction* temp2 = BinaryOperator::Create(Instruction::LShr, index, shift_val);
+  Instruction* temp3 = BinaryOperator::Create(Instruction::Mul, temp2, operands_val);
+  Instruction* temp4 = BinaryOperator::Create(Instruction::Add, temp3, offset_val);
+  Instruction* temp5 = BinaryOperator::Create(Instruction::Shl, temp4, shift_val);
+  Instruction* new_index = BinaryOperator::Create(Instruction::Add, temp1, temp5);
+
+  ArrayRef<Value*> arr_ref(new_index);
+  GetElementPtrInst* new_inst = GetElementPtrInst::Create(matrix, arr_ref);
+  new_inst->setIsInBounds(true);
+
+  temp1->insertBefore(inst);
+  temp2->insertAfter(temp1);
+  temp3->insertAfter(temp2);
+  temp4->insertAfter(temp3);
+  temp5->insertAfter(temp4);
+  new_index->insertAfter(temp5);
+  new_inst->insertAfter(new_index);
+
+  inst->replaceAllUsesWith(new_inst);
+  inst->eraseFromParent();
 }
 
 
@@ -104,7 +127,6 @@ int DethrashPass::log2(int x) {
   }
   return i;
 }
-
 
 //
 // LLVM uses the address of this static member to identify the pass, so the
