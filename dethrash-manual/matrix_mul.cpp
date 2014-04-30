@@ -61,7 +61,6 @@ void matrix_mul(float *A, float *B, float *C, unsigned int size) {
     }
     C[i] = interleaved[baseC * FLT_PER_BLOCK + i % FLT_PER_BLOCK];
   }
-  free(unaligned_mem);
 }
 
 

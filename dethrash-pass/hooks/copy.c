@@ -37,8 +37,6 @@ void hooks_copy_output(float* unaligned, float* C, int size) {
     }
     C[i] = inter[baseC * FLT_PER_BLOCK + i % FLT_PER_BLOCK];
   }
-  free(unaligned);
-  return;
 }
 
 

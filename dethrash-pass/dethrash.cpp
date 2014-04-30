@@ -168,7 +168,7 @@ void DethrashPass::transformPointer(GetElementPtrInst* inst) {
 
   // Get transform parameters.
   uint64_t float_shift = log2(FLT_PER_BLOCK);
-  uint64_t float_mask = ~FLT_PER_BLOCK + 1;
+  uint64_t float_mask = FLT_PER_BLOCK - 1;
 
   // Set up constant values.
   Value* mask_val = ConstantInt::get(Type::getInt32Ty(context), float_mask);

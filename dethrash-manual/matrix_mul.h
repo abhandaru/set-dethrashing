@@ -6,7 +6,6 @@
 #ifndef __MATRIX_MUL_H__
 #define __MATRIX_MUL_H__
 
-#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 
@@ -20,6 +19,9 @@
 #define B_OFFSET        1
 #define C_OFFSET        2
 #define NUM_OPERANDS    3
+
+// Prevent cstdint error on Linux.
+typedef unsigned long long uint64_t;
 
 //
 // Function prototypes.
