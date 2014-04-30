@@ -22,7 +22,7 @@
 //
 // Function prototypes.
 //
-float* hooks_copy_inputs(float* A, float* B);
+float* hooks_copy_inputs(float* A, float* B, unsigned int size);
 void hooks_copy_output(float* unaligned, float* C);
 inline float* hooks_align(float* unaligned);
 
