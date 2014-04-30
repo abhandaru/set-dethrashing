@@ -24,7 +24,7 @@ class bishe_insert : public ModulePass {
   Function *hook;
 
   // Just call super constructor.
-  bishe_insert() : ModulePass(ID) {}
+  bishe_insert() : ModulePass(ID) { }
 
   virtual bool runOnModule(Module& M) {
     LLVMContext& context = M.getContext();
