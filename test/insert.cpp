@@ -1,3 +1,6 @@
+#include <iostream>
+#include <cstring>
+
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
@@ -7,6 +10,10 @@
 #include "llvm/IR/Instruction.h"
 
 #include "llvm/IR/IRBuilder.h"
+
+using std::cout;
+using std::endl;
+using std::string;
 
 
 namespace llvm {
@@ -24,14 +31,24 @@ class bishe_insert : public ModulePass {
 
     // Create function object.
     Constant* hookFunc;
-    hookFunc = M.getOrInsertFunction("print",
+    hookFunc = M.getOrInsertFunction("printI",
         Type::getVoidTy(context),
-        // Type::getInt32Ty(context),
+        Type::getInt32Ty(context),
         (Type*)NULL);
     hook = cast<Function>(hookFunc);
 
     // Run over every function.
+    string test = "main";
     for(Module::iterator F = M.begin(), E = M.end(); F!= E; ++F) {
+      // See if this is the main function.
+      Function& fn = *F;
+      string name = fn.getName().data();
+      cout << name << endl;
+      if (name != test) {
+        continue;
+      }
+
+      // Insert the hooks.
       for(Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB) {
         bishe_insert::runOnBasicBlock(BB);
       }
@@ -45,10 +62,9 @@ class bishe_insert : public ModulePass {
 
     for(BasicBlock::iterator BI = BB->begin(), BE = BB->end(); BI != BE; ++BI) {
       if(LoadInst *CI = dyn_cast<LoadInst>(BI)) {
-        // Value* val = ConstantInt::get(Type::getInt32Ty(context), 5);
-        // ArrayRef<Value *> array(val);
-        Instruction *newInst = CallInst::Create(hook, "");
-        BB->getInstList().insert((Instruction*)CI, newInst);
+        ArrayRef<Value *> array(CI);
+        Instruction *newInst = CallInst::Create(hook, array, "");
+        newInst->insertAfter((Instruction*)CI);
       }
     }
     return true;
