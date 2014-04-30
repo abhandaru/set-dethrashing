@@ -24,6 +24,7 @@
 // Quantities know when pass is compiled on system.
 #define L1_BLK_SIZE     64
 #define FLT_PER_BLOCK   (L1_BLK_SIZE / sizeof(float))
+#define NUM_OPERANDS    3
 
 namespace llvm {
 
@@ -49,10 +50,9 @@ class DethrashPass : public ModulePass {
 
   // data
   ValueMap<Value*, int> _matrices;
-  int _operands;
-  Value* _unaligned;
-  Value* _aligned;
+  std::vector<Value*> _inputs;
   Value* _size;
+  int _operands;
 };
 
 }

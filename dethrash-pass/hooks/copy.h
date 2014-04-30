@@ -26,6 +26,6 @@
 //
 float* hooks_copy_inputs(float* A, float* B, int size);
 void hooks_copy_output(float* unaligned, float* C, int size);
-inline float* hooks_align(float* unaligned);
+float* hooks_align(float* unaligned);
 
 #endif

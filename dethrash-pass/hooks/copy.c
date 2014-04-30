@@ -42,11 +42,6 @@ void hooks_copy_output(float* unaligned, float* C, int size) {
 }
 
 
-inline float* hooks_align(float* unaligned) {
+float* hooks_align(float* unaligned) {
   return (float *)((uint64_t)(unaligned) & (~L1_BLK_SIZE + 1));
-}
-
-
-void hooks_print(int i) {
-  printf("load i=%d\n", i);
 }

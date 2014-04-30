@@ -10,6 +10,7 @@ using std::endl;
 using std::pair;
 using std::set;
 using std::string;
+using std::vector;
 
 namespace llvm {
 
@@ -54,33 +55,57 @@ bool DethrashPass::eachFunction(Module& mod, Function& fn) {
 void DethrashPass::insertHooks(Module& mod, Function& fn) {
   LLVMContext& context = mod.getContext();
 
-  Constant* align_const = mod.getOrInsertFunction("hooks_print",
-      Type::getVoidTy(context),
+  // Define the hook functions in LLVM IR.
+  Constant* inputs_const = mod.getOrInsertFunction("hooks_copy_inputs",
+      Type::getFloatPtrTy(context),
+      Type::getFloatPtrTy(context),
+      Type::getFloatPtrTy(context),
       Type::getInt32Ty(context),
       (Type*)NULL);
+  Constant* align_const = mod.getOrInsertFunction("hooks_align",
+      Type::getFloatPtrTy(context),
+      Type::getFloatPtrTy(context),
+      (Type*)NULL);
 
+  // Cast values to Function objects.
+  Function* inputs = cast<Function>(inputs_const);
   Function* align = cast<Function>(align_const);
 
+  // vector<Value*> inputs_args;
+  // inputs_args.push_back(_inputs[0]);
+  // inputs_args.push_back(_inputs[1]);
+  // inputs_args.push_back(_size);
+  // Instruction* inputs_call = CallInst::Create(inputs, inputs_args, Twine("unaligned"));
+
+  // ArrayRef<Value*> align_args(inputs_call);
+  ArrayRef<Value*> align_args(_inputs[0]);
+  Instruction* align_call = CallInst::Create(align, align_args, Twine("inter"));
+
+  // Insert in order.
   BasicBlock& entry = fn.getEntryBlock();
   Instruction* first = &*(entry.getFirstInsertionPt());
-
-  Value* val = ConstantInt::get(Type::getInt32Ty(context), 18);
-  ArrayRef<Value*> array(val);
-  Instruction *align_call = CallInst::Create(align, array);
+  // inputs_call->insertBefore(first);
+  // align_call->insertAfter(inputs_call);
   align_call->insertBefore(first);
 }
 
 
 // Compute the set of matrices.
 void DethrashPass::getOperands(Function& fn) {
+  _inputs.clear();
   _matrices.clear();
   iplist<Argument>& arguments = fn.getArgumentList();
   for (iplist<Argument>::iterator it = arguments.begin(); it != arguments.end(); ++it) {
     if (isMatrix(*it)) {
       Value* arg = &*it;
-      _matrices.insert(pair<Value*, int>(arg, _matrices.size()));
+      int offset = _matrices.size();
+      _matrices.insert(pair<Value*, int>(arg, offset));
+      if (offset < NUM_OPERANDS - 1) {
+        _inputs.push_back(arg);
+      }
     }
   }
+  _size = &*(arguments.end());
   _operands = _matrices.size();
 }
 
